@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Laptop Collections Dashboard</title>
+  <style>
+    :root{
+      --bg: #0f1223;
+      --panel: #141834;
+      --muted: #9aa4b2;
+      --text: #e6e9f0;
+      --accent: #6ee7ff;
+      --accent-2:#7c5cff;
+      --ok:#35d399;
+      --warn:#f6c350;
+      --danger:#ff6b6b;
+      --shadow: 0 8px 30px rgba(0,0,0,.35);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--text); background: radial-gradient(1200px 800px at 20% -20%, rgba(124,92,255,.15), transparent 40%),
+                         radial-gradient(900px 700px at 120% 20%, rgba(110,231,255,.12), transparent 40%),
+                         var(--bg);
+    }
+    header{
+      position:sticky; top:0; z-index:10;
+      background: rgba(15,18,35,.75);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .wrap{max-width:1200px; margin:0 auto; padding: 16px;}
+    .titlebar{ display:flex; gap:16px; align-items:center; justify-content:space-between; }
+    .titlebar h1{font-size: clamp(20px, 2.6vw, 28px); margin:0; letter-spacing:.3px}
+    .search{flex:1; display:flex; gap:10px; align-items:center; margin-left:16px}
+    .search input{
+      width:100%; padding:12px 14px; background:#0b0e1e; color:var(--text);
+      border:1px solid rgba(255,255,255,.08); border-radius:12px; outline:none;
+    }
+    .layout{ display:grid; grid-template-columns: 280px 1fr; gap:16px; }
+    @media (max-width: 900px){ .layout{ grid-template-columns:1fr; } .search{ margin-left:0 } }
+
+    aside{ background: var(--panel); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); padding:16px; box-shadow: var(--shadow); }
+    aside h3{ margin:0 0 8px; font-size:14px; color:var(--muted); text-transform:uppercase; letter-spacing:.12em }
+    .filter-group{ margin:14px 0 18px; }
+    .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+    .chip{ border:1px solid rgba(255,255,255,.12); padding:6px 10px; border-radius:999px; cursor:pointer; user-select:none; font-size:13px; }
+    .chip.active{ background: linear-gradient(90deg, var(--accent-2), var(--accent)); color:#061116; border-color: transparent; font-weight:600 }
+    .range{ display:flex; gap:8px; align-items:center }
+    .range input[type=number]{ width:100%; padding:8px 10px; background:#0b0e1e; border:1px solid rgba(255,255,255,.08); color:var(--text); border-radius:10px }
+    .range input[type=range]{ width:100% }
+
+    main{ display:flex; flex-direction:column; gap:16px }
+    .toolbar{ display:flex; gap:12px; align-items:center; justify-content:space-between; background: var(--panel); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); padding:12px 14px; box-shadow: var(--shadow); }
+    .left, .right{ display:flex; gap:10px; align-items:center }
+    .select, .btn{
+      background:#0b0e1e; border:1px solid rgba(255,255,255,.08); color:var(--text); border-radius:12px; padding:10px 12px; font-size:14px;
+    }
+    .btn{ cursor:pointer; transition:transform .05s ease; }
+    .btn:active{ transform:translateY(1px) }
+
+    .grid{ display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap:16px }
+    @media (max-width: 1100px){ .grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 680px){ .grid{ grid-template-columns: 1fr; } }
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.02), transparent), var(--panel);
+      border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); overflow:hidden; box-shadow: var(--shadow);
+      display:flex; flex-direction:column
+    }
+    .thumb{ aspect-ratio: 16/9; background: linear-gradient(135deg, rgba(124,92,255,.35), rgba(110,231,255,.25)); position:relative; }
+    .brand-badge{ position:absolute; left:10px; top:10px; font-size:12px; padding:6px 10px; border-radius:999px; background: rgba(0,0,0,.45); border:1px solid rgba(255,255,255,.12) }
+    .price-tag{ position:absolute; right:10px; bottom:10px; font-weight:700; background: rgba(0,0,0,.55); padding:6px 10px; border-radius:10px; }
+    .content{ padding:14px }
+    .title{ margin:0 0 6px; font-size:16px; font-weight:700 }
+    .specs{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px; color:var(--muted); font-size:13px }
+    .specs div{ background:#0b0e1e; border:1px solid rgba(255,255,255,.08); padding:8px 10px; border-radius:10px }
+    .card .foot{ display:flex; align-items:center; justify-content:space-between; padding:12px 14px; border-top:1px dashed rgba(255,255,255,.08) }
+    .stars{ letter-spacing:2px }
+
+    .pill{ display:inline-flex; align-items:center; gap:8px; border:1px dashed rgba(255,255,255,.15); padding:8px 10px; border-radius:999px; font-size:13px; color:var(--muted) }
+    .pill .dot{ width:8px; height:8px; border-radius:999px; background: var(--ok) }
+
+    .stats{
+      display:grid; grid-template-columns: 1.2fr 2fr; gap:16px;
+    }
+    @media (max-width: 900px){ .stats{ grid-template-columns:1fr; } }
+    .panel{ background: var(--panel); border:1px solid rgba(255,255,255,.06); border-radius: var(--radius); padding:16px; box-shadow: var(--shadow); }
+
+    canvas{ width:100%; height:260px; }
+
+    .compare-bar{ position: fixed; left:0; right:0; bottom:0; background: rgba(9,12,24,.9); border-top:1px solid rgba(255,255,255,.08); backdrop-filter: blur(8px); padding:10px; display:none; z-index:20 }
+    .compare-inner{ max-width:1200px; margin:0 auto; display:flex; align-items:center; gap:10px; }
+    .compare-slot{ flex:1; min-height:54px; border:1px dashed rgba(255,255,255,.18); border-radius:12px; display:flex; align-items:center; justify-content:center; padding:8px; color:var(--muted) }
+    .compare-btn{ background: linear-gradient(90deg, var(--accent-2), var(--accent)); color:#061116; border:none; padding:12px 16px; border-radius:12px; cursor:pointer; font-weight:700 }
+
+    /* Tiny list view toggle */
+    .list .grid{ grid-template-columns: 1fr; }
+    .list .specs{ grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap titlebar">
+      <h1>💻 Laptop Collections Dashboard</h1>
+      <div class="search">
+        <input id="searchInput" placeholder="Search models, GPU, CPU… (e.g., \"RTX 4060\", \"Ryzen 7\")" />
+        <button class="btn" id="clearSearch">Clear</button>
+      </div>
+    </div>
+  </header>
+  <div class="wrap layout">
+    <aside>
+      <h3>Filters</h3>
+      <div class="filter-group" id="brandChips"></div>
+
+      <div class="filter-group">
+        <label>CPU</label>
+        <div class="chips" id="cpuChips"></div>
+      </div>
+
+      <div class="filter-group">
+        <label>RAM (GB)</label>
+        <div class="chips" id="ramChips"></div>
+      </div>
+
+      <div class="filter-group">
+        <label>Price (USD)</label>
+        <div class="range">
+          <input type="number" id="minPrice" placeholder="Min" min="0">
+          <span>–</span>
+          <input type="number" id="maxPrice" placeholder="Max" min="0">
+        </div>
+      </div>
+
+      <div class="filter-group">
+        <label>Release Year</label>
+        <div class="chips" id="yearChips"></div>
+      </div>
+
+      <div class="filter-group">
+        <button class="btn" id="resetFilters">Reset Filters</button>
+      </div>
+
+      <div class="filter-group">
+        <div class="pill"><span class="dot"></span> <span id="matchCount">0</span> matching laptops</div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="toolbar">
+        <div class="left">
+          <select id="sortSelect" class="select">
+            <option value="relevance">Sort: Relevance</option>
+            <option value="priceAsc">Price ↑</option>
+            <option value="priceDesc">Price ↓</option>
+            <option value="ratingDesc">Rating ↓</option>
+            <option value="yearDesc">Newest</option>
+            <option value="weightAsc">Lightest</option>
+          </select>
+          <button class="btn" id="toggleView">Toggle Grid/List</button>
+        </div>
+        <div class="right">
+          <button class="btn" id="downloadJSON">Export JSON</button>
+        </div>
+      </div>
+
+      <section class="stats">
+        <div class="panel">
+          <h3 style="margin-top:0">Average Price by Brand</h3>
+          <canvas id="priceChart"></canvas>
+        </div>
+        <div class="panel">
+          <h3 style="margin-top:0">At a glance</h3>
+          <div class="specs" id="glanceStats"></div>
+        </div>
+      </section>
+
+      <section class="grid" id="cards"></section>
+    </main>
+  </div>
+
+  <div class="compare-bar" id="compareBar">
+    <div class="compare-inner">
+      <div class="compare-slot" id="slot1">Empty</div>
+      <div class="compare-slot" id="slot2">Empty</div>
+      <div class="compare-slot" id="slot3">Empty</div>
+      <button class="compare-btn" id="compareBtn">Compare</button>
+      <button class="btn" id="clearCompare">Clear</button>
+    </div>
+  </div>
+
+  <script>
+    // --- Demo dataset (extend/replace with real data or fetch) ---
+    const laptops = [
+      {id:1, brand:"Apple", model:"MacBook Air 13 (M3)", cpu:"Apple M3", ram:8, storage:"256GB SSD", gpu:"Integrated", screen:13.6, weight:1.24, battery:"18h", price:1099, year:2024, rating:4.7},
+      {id:2, brand:"Apple", model:"MacBook Pro 14 (M3 Pro)", cpu:"Apple M3 Pro", ram:18, storage:"512GB SSD", gpu:"Integrated", screen:14.2, weight:1.60, battery:"18h", price:1999, year:2023, rating:4.8},
+      {id:3, brand:"Dell", model:"XPS 13 Plus", cpu:"Intel Core Ultra 7", ram:16, storage:"1TB SSD", gpu:"Intel Arc", screen:13.4, weight:1.26, battery:"14h", price:1599, year:2024, rating:4.4},
+      {id:4, brand:"Dell", model:"Alienware m16 R2", cpu:"Intel Core i9", ram:32, storage:"1TB SSD", gpu:"RTX 4070", screen:16.0, weight:2.7, battery:"8h", price:2299, year:2024, rating:4.6},
+      {id:5, brand:"HP", model:"Spectre x360 14", cpu:"Intel Core Ultra 7", ram:16, storage:"512GB SSD", gpu:"Intel Arc", screen:14.0, weight:1.36, battery:"15h", price:1399, year:2024, rating:4.5},
+      {id:6, brand:"HP", model:"Omen 16", cpu:"AMD Ryzen 7", ram:16, storage:"1TB SSD", gpu:"RTX 4060", screen:16.1, weight:2.35, battery:"7h", price:1499, year:2023, rating:4.2},
+      {id:7, brand:"Lenovo", model:"ThinkPad X1 Carbon Gen 12", cpu:"Intel Core Ultra 7", ram:16, storage:"512GB SSD", gpu:"Intel Arc", screen:14.0, weight:1.12, battery:"17h", price:1749, year:2024, rating:4.7},
+      {id:8, brand:"Lenovo", model:"LOQ 15", cpu:"Intel Core i7", ram:16, storage:"1TB SSD", gpu:"RTX 4050", screen:15.6, weight:2.4, battery:"6h", price:1099, year:2023, rating:4.1},
+      {id:9, brand:"ASUS", model:"ROG Zephyrus G14", cpu:"AMD Ryzen 9", ram:32, storage:"1TB SSD", gpu:"RTX 4070", screen:14.0, weight:1.72, battery:"10h", price:2199, year:2024, rating:4.8},
+      {id:10, brand:"ASUS", model:"Zenbook 14 OLED", cpu:"Intel Core Ultra 7", ram:16, storage:"512GB SSD", gpu:"Intel Arc", screen:14.0, weight:1.28, battery:"16h", price:1299, year:2024, rating:4.6},
+      {id:11, brand:"Acer", model:"Swift Go 14", cpu:"Intel Core Ultra 7", ram:16, storage:"512GB SSD", gpu:"Intel Arc", screen:14.0, weight:1.32, battery:"15h", price:999, year:2024, rating:4.3},
+      {id:12, brand:"Acer", model:"Nitro 16", cpu:"AMD Ryzen 7", ram:16, storage:"1TB SSD", gpu:"RTX 4060", screen:16.0, weight:2.5, battery:"7h", price:1199, year:2024, rating:4.2},
+      {id:13, brand:"Microsoft", model:"Surface Laptop 7 (Copilot+)", cpu:"Snapdragon X Elite", ram:16, storage:"512GB SSD", gpu:"Adreno", screen:15.0, weight:1.66, battery:"20h", price:1499, year:2024, rating:4.4},
+      {id:14, brand:"MSI", model:"Stealth 14 AI Studio", cpu:"Intel Core Ultra 9", ram:32, storage:"1TB SSD", gpu:"RTX 4070", screen:14.0, weight:1.7, battery:"9h", price:2399, year:2024, rating:4.6},
+      {id:15, brand:"Razer", model:"Blade 15", cpu:"Intel Core i7", ram:16, storage:"1TB SSD", gpu:"RTX 4060", screen:15.6, weight:2.0, battery:"6h", price:2199, year:2023, rating:4.3},
+      {id:16, brand:"Samsung", model:"Galaxy Book4 Pro 14", cpu:"Intel Core Ultra 7", ram:16, storage:"512GB SSD", gpu:"Intel Arc", screen:14.0, weight:1.23, battery:"18h", price:1399, year:2024, rating:4.4},
+      {id:17, brand:"LG", model:"Gram 16", cpu:"Intel Core Ultra 7", ram:16, storage:"1TB SSD", gpu:"Intel Arc", screen:16.0, weight:1.19, battery:"19h", price:1699, year:2024, rating:4.5},
+      {id:18, brand:"Apple", model:"MacBook Air 15 (M3)", cpu:"Apple M3", ram:8, storage:"256GB SSD", gpu:"Integrated", screen:15.3, weight:1.51, battery:"18h", price:1299, year:2024, rating:4.7},
+      {id:19, brand:"Lenovo", model:"Yoga 7i 14", cpu:"Intel Core Ultra 5", ram:16, storage:"512GB SSD", gpu:"Intel Arc", screen:14.0, weight:1.49, battery:"15h", price:999, year:2024, rating:4.2},
+      {id:20, brand:"HP", model:"Pavilion 15", cpu:"Intel Core i5", ram:8, storage:"512GB SSD", gpu:"Intel Iris Xe", screen:15.6, weight:1.74, battery:"10h", price:719, year:2023, rating:3.9}
+    ];
+
+    // --- State ---
+    const state = {
+      search:"",
+      brands: new Set(),
+      cpus: new Set(),
+      rams: new Set(),
+      minPrice:null,
+      maxPrice:null,
+      years: new Set(),
+      sort:"relevance",
+      compare: []
+    };
+
+    // --- Helpers ---
+    const $ = sel => document.querySelector(sel);
+    const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+    function uniq(arr){ return Array.from(new Set(arr)); }
+    function average(arr){ return arr.length? arr.reduce((a,b)=>a+b,0)/arr.length : 0 }
+
+    function fmtPrice(n){ return `$${n.toLocaleString()}` }
+    function starStr(n){
+      const full = Math.floor(n);
+      const half = n - full >= 0.5 ? 1 : 0;
+      return '★'.repeat(full) + (half?'½':'') + '☆'.repeat(5-full-half);
+    }
+
+    // --- UI Builders ---
+    function buildChips(containerId, values, stateSet){
+      const c = $(containerId);
+      c.innerHTML = '<h3>'+ c.previousElementSibling?.textContent || '' +'</h3>';
+      c.innerHTML = '';
+      values.forEach(v=>{
+        const el = document.createElement('span');
+        el.className = 'chip'+(stateSet.has(v)?' active':'');
+        el.textContent = v;
+        el.onclick = ()=>{ stateSet.has(v)? stateSet.delete(v) : stateSet.add(v); render(); };
+        c.appendChild(el);
+      });
+    }
+
+    function buildFilters(){
+      const brands = uniq(laptops.map(x=>x.brand)).sort();
+      const cpus = uniq(laptops.map(x=>x.cpu.split(' ')[0] === 'Apple' ? 'Apple Silicon' : x.cpu.split(' ')[0] === 'Snapdragon' ? 'Snapdragon' : (x.cpu.includes('Intel')? 'Intel' : x.cpu.includes('AMD')? 'AMD' : 'Other'))).sort();
+      const rams = uniq(laptops.map(x=>x.ram)).sort((a,b)=>a-b).map(String);
+      const years = uniq(laptops.map(x=>x.year)).sort((a,b)=>b-a).map(String);
+
+      const brandChips = $('#brandChips'); brandChips.innerHTML = '<h3>Brand</h3>'; brands.forEach(b=>{
+        const el = document.createElement('span'); el.className='chip'+(state.brands.has(b)?' active':''); el.textContent=b; el.onclick=()=>{toggleSet(state.brands,b);}; brandChips.appendChild(el);
+      });
+
+      const cpuChips = $('#cpuChips');
+      const cpuLabels = ['Intel','AMD','Apple Silicon','Snapdragon'];
+      cpuLabels.forEach(c=>{ const el=document.createElement('span'); el.className='chip'+(state.cpus.has(c)?' active':''); el.textContent=c; el.onclick=()=>{toggleSet(state.cpus,c);}; cpuChips.appendChild(el); });
+
+      const ramChips = $('#ramChips');
+      rams.forEach(r=>{ const el=document.createElement('span'); el.className='chip'+(state.rams.has(+r)?' active':''); el.textContent=r; el.onclick=()=>{toggleSet(state.rams,+r);}; ramChips.appendChild(el); });
+
+      const yearChips = $('#yearChips');
+      years.forEach(y=>{ const el=document.createElement('span'); el.className='chip'+(state.years.has(+y)?' active':''); el.textContent=y; el.onclick=()=>{toggleSet(state.years,+y);}; yearChips.appendChild(el); });
+
+      function toggleSet(set, value){ set.has(value)? set.delete(value) : set.add(value); render(); }
+    }
+
+    function filterItems(){
+      const q = state.search.trim().toLowerCase();
+      return laptops.filter(x=>{
+        const brandOk = state.brands.size? state.brands.has(x.brand) : true;
+        const cpuFam = x.cpu.includes('Intel')? 'Intel' : x.cpu.includes('AMD')? 'AMD' : x.cpu.includes('Apple')? 'Apple Silicon' : x.cpu.includes('Snapdragon')? 'Snapdragon' : 'Other';
+        const cpuOk = state.cpus.size? state.cpus.has(cpuFam) : true;
+        const ramOk = state.rams.size? state.rams.has(x.ram) : true;
+        const priceOk = (state.minPrice==null || x.price>=state.minPrice) && (state.maxPrice==null || x.price<=state.maxPrice);
+        const yearOk = state.years.size? state.years.has(x.year) : true;
+        const qOk = !q || [x.brand, x.model, x.cpu, x.gpu, x.storage].join(' ').toLowerCase().includes(q);
+        return brandOk && cpuOk && ramOk && priceOk && yearOk && qOk;
+      });
+    }
+
+    function sortItems(items){
+      const s = state.sort;
+      const by = {
+        priceAsc: (a,b)=>a.price-b.price,
+        priceDesc: (a,b)=>b.price-a.price,
+        ratingDesc: (a,b)=>b.rating-a.rating,
+        yearDesc: (a,b)=>b.year-a.year,
+        weightAsc: (a,b)=>a.weight-b.weight
+      }[s];
+      return by? items.slice().sort(by) : items;
+    }
+
+    function renderCards(items){
+      const c = $('#cards'); c.innerHTML = '';
+      items.forEach(x=>{
+        const card = document.createElement('article'); card.className='card';
+        card.innerHTML = `
+          <div class="thumb">
+            <div class="brand-badge">${x.brand}</div>
+            <div class="price-tag">${fmtPrice(x.price)}</div>
+          </div>
+          <div class="content">
+            <h3 class="title">${x.model}</h3>
+            <div class="specs">
+              <div>CPU: <b>${x.cpu}</b></div>
+              <div>GPU: <b>${x.gpu}</b></div>
+              <div>RAM: <b>${x.ram} GB</b></div>
+              <div>Storage: <b>${x.storage}</b></div>
+              <div>Screen: <b>${x.screen}\"</b></div>
+              <div>Weight: <b>${x.weight} kg</b></div>
+            </div>
+          </div>
+          <div class="foot">
+            <div class="stars" title="${x.rating} / 5">${starStr(x.rating)}</div>
+            <div style="display:flex; gap:8px; align-items:center">
+              <button class="btn" data-add="${x.id}">Add to Compare</button>
+            </div>
+          </div>
+        `;
+        c.appendChild(card);
+      });
+
+      // Compare buttons
+      $$('[data-add]').forEach(btn=>{
+        btn.onclick = ()=>{
+          const id = +btn.getAttribute('data-add');
+          if(!state.compare.includes(id)){
+            if(state.compare.length>=3){ alert('You can compare up to 3 items.'); return; }
+            state.compare.push(id); updateCompareBar();
+          }
+        };
+      });
+    }
+
+    function updateStats(items){
+      $('#matchCount').textContent = items.length;
+      const byBrand = {};
+      items.forEach(x=>{ byBrand[x.brand] = byBrand[x.brand] || []; byBrand[x.brand].push(x.price); });
+      drawChart(byBrand);
+
+      const cheapest = items.slice().sort((a,b)=>a.price-b.price)[0];
+      const lightest = items.slice().sort((a,b)=>a.weight-b.weight)[0];
+      const longest = items.slice().sort((a,b)=>b.rating-a.rating)[0];
+
+      $('#glanceStats').innerHTML = `
+        <div>Cheapest:<br><b>${cheapest? cheapest.brand+' '+cheapest.model+' ('+fmtPrice(cheapest.price)+')' : '—'}</b></div>
+        <div>Lightest:<br><b>${lightest? lightest.brand+' '+lightest.model+' ('+lightest.weight+' kg)' : '—'}</b></div>
+        <div>Top Rated:<br><b>${longest? longest.brand+' '+longest.model+' ('+longest.rating+'/5)' : '—'}</b></div>
+        <div>Avg. Price:<br><b>${fmtPrice(Math.round(average(items.map(x=>x.price))))}</b></div>
+        <div>Avg. Weight:<br><b>${average(items.map(x=>x.weight)).toFixed(2)} kg</b></div>
+        <div>Newest Year:<br><b>${items.length? Math.max(...items.map(x=>x.year)) : '—'}</b></div>
+      `;
+    }
+
+    function drawChart(byBrand){
+      const cvs = $('#priceChart');
+      const ctx = cvs.getContext('2d');
+      const width = cvs.clientWidth, height = cvs.clientHeight;
+      const dpr = window.devicePixelRatio || 1; cvs.width = width*dpr; cvs.height = height*dpr; ctx.scale(dpr,dpr);
+      ctx.clearRect(0,0,width,height);
+
+      const brands = Object.keys(byBrand);
+      const avgs = brands.map(b=> average(byBrand[b]));
+      const max = Math.max(1, ...avgs);
+
+      const pad = 30; const barW = (width - pad*2) / (brands.length*1.5);
+      brands.forEach((b,i)=>{
+        const x = pad + i*barW*1.5;
+        const h = (avgs[i]/max) * (height - pad*2);
+        const y = height - pad - h;
+        // bar
+        const grad = ctx.createLinearGradient(0,y,0,y+h);
+        grad.addColorStop(0,'#7c5cff');
+        grad.addColorStop(1,'#6ee7ff');
+        ctx.fillStyle = grad;
+        ctx.fillRect(x, y, barW, h);
+        // label
+        ctx.fillStyle = 'rgba(230,233,240,.9)';
+        ctx.font = '12px system-ui';
+        ctx.fillText(b, x, height-10);
+        ctx.fillText('$'+Math.round(avgs[i]), x, y-6);
+      });
+    }
+
+    function updateCompareBar(){
+      const bar = $('#compareBar');
+      bar.style.display = state.compare.length? 'block' : 'none';
+      const slots = [$('#slot1'),$('#slot2'),$('#slot3')];
+      slots.forEach((el,i)=>{
+        const item = laptops.find(x=>x.id===state.compare[i]);
+        el.textContent = item? `${item.brand} ${item.model}` : 'Empty';
+      });
+    }
+
+    function exportJSON(items){
+      const blob = new Blob([JSON.stringify(items, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'laptops.json'; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function render(){
+      const items = sortItems(filterItems());
+      renderCards(items);
+      updateStats(items);
+      updateCompareBar();
+    }
+
+    // --- Events ---
+    $('#searchInput').addEventListener('input', (e)=>{ state.search = e.target.value; render(); });
+    $('#clearSearch').onclick = ()=>{ $('#searchInput').value=''; state.search=''; render(); };
+    $('#resetFilters').onclick = ()=>{ state.brands.clear(); state.cpus.clear(); state.rams.clear(); state.years.clear(); $('#minPrice').value=''; $('#maxPrice').value=''; state.minPrice=null; state.maxPrice=null; render(); };
+    $('#sortSelect').onchange = (e)=>{ state.sort = e.target.value; render(); };
+    $('#toggleView').onclick = ()=>{ document.body.classList.toggle('list'); };
+    $('#downloadJSON').onclick = ()=>{ exportJSON(sortItems(filterItems())); };
+
+    $('#minPrice').addEventListener('change', e=>{ const v = parseInt(e.target.value); state.minPrice = isNaN(v)? null : v; render(); });
+    $('#maxPrice').addEventListener('change', e=>{ const v = parseInt(e.target.value); state.maxPrice = isNaN(v)? null : v; render(); });
+
+    $('#compareBtn').onclick = ()=>{
+      if(state.compare.length < 2){ alert('Pick at least 2 items to compare.'); return; }
+      const items = state.compare.map(id=> laptops.find(x=>x.id===id));
+      const rows = [
+        ['Model', ...items.map(x=>x.brand+' '+x.model)],
+        ['CPU', ...items.map(x=>x.cpu)],
+        ['GPU', ...items.map(x=>x.gpu)],
+        ['RAM', ...items.map(x=>x.ram+' GB')],
+        ['Storage', ...items.map(x=>x.storage)],
+        ['Screen', ...items.map(x=>x.screen+'"')],
+        ['Weight', ...items.map(x=>x.weight+' kg')],
+        ['Battery', ...items.map(x=>x.battery)],
+        ['Year', ...items.map(x=>x.year)],
+        ['Price', ...items.map(x=>fmtPrice(x.price))],
+        ['Rating', ...items.map(x=>x.rating)]
+      ];
+      const text = rows.map(r=> r.join('\t')).join('\n');
+      const blob = new Blob([text], {type:'text/tab-separated-values'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'comparison.tsv'; a.click(); URL.revokeObjectURL(url);
+    };
+    $('#clearCompare').onclick = ()=>{ state.compare = []; updateCompareBar(); };
+
+    // --- Init ---
+    buildFilters();
+    render();
+  </script>
+</body>
+</html>
